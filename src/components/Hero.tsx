@@ -1,20 +1,21 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Heart, ArrowRight, User, ShoppingCart } from 'lucide-react';
-
-const dosages = ['10 mg', '20 mg'];
-const vials = ['1 Vial', '4 Vial', '10 Vial'];
-
-const priceMap: Record<string, Record<string, number>> = {
-  '10 mg': { '1 Vial': 129.99, '4 Vial': 489.99, '10 Vial': 1160.99 },
-  '20 mg': { '1 Vial': 199.99, '4 Vial': 759.99, '10 Vial': 1799.99 },
-};
+import { useFeaturedProduct } from '../hooks/useProducts';
+import { useCart } from '../context/CartContext';
+import { useWishlist } from '../context/WishlistContext';
 
 export default function Hero() {
-  const [activeDosage, setActiveDosage] = useState('10 mg');
-  const [activeVial, setActiveVial] = useState('1 Vial');
+  const { product: featuredProduct } = useFeaturedProduct();
+  const { openCart, totalItems, addItem } = useCart();
+  const { isInWishlist, toggleItem } = useWishlist();
+  const [activeDosageIdx, setActiveDosageIdx] = useState(0);
+  const [activeVialIdx, setActiveVialIdx] = useState(0);
 
-  const price = priceMap[activeDosage]?.[activeVial] ?? 129.99;
+  const variations = featuredProduct?.variations || [];
+  const currentVariation = variations[activeDosageIdx];
+  const currentVial = currentVariation?.vials?.[activeVialIdx];
+  const price = currentVial?.price ?? featuredProduct?.price ?? 0;
 
   return (
     <section
@@ -82,24 +83,27 @@ export default function Hero() {
           </nav>
 
           <div className="flex items-center gap-2.5">
-            {[User, Heart].map((Icon, idx) => (
-              <a
-                key={idx}
-                href="#"
-                className="w-[38px] h-[38px] rounded-full border border-white/20 flex items-center justify-center cursor-pointer transition-all hover:border-white/40 hover:bg-white/10"
-              >
-                <Icon className="w-[18px] h-[18px] text-white" />
-              </a>
-            ))}
-            <a
-              href="#"
+            <Link
+              to="/my-account/"
+              className="w-[38px] h-[38px] rounded-full border border-white/20 flex items-center justify-center cursor-pointer transition-all hover:border-white/40 hover:bg-white/10"
+            >
+              <User className="w-[18px] h-[18px] text-white" />
+            </Link>
+            <Link
+              to="/wishlist/"
+              className="w-[38px] h-[38px] rounded-full border border-white/20 flex items-center justify-center cursor-pointer transition-all hover:border-white/40 hover:bg-white/10"
+            >
+              <Heart className="w-[18px] h-[18px] text-white" />
+            </Link>
+            <button
+              onClick={openCart}
               className="relative w-[38px] h-[38px] rounded-full border border-white/20 flex items-center justify-center cursor-pointer transition-all hover:border-white/40 hover:bg-white/10"
             >
               <ShoppingCart className="w-[18px] h-[18px] text-white" />
               <span className="absolute -top-0.5 -right-0.5 bg-red-500 text-white w-[16px] h-[16px] rounded-full text-[10px] font-semibold flex items-center justify-center font-primary">
-                0
+                {totalItems}
               </span>
-            </a>
+            </button>
           </div>
         </header>
 
@@ -158,6 +162,7 @@ export default function Hero() {
           </div>
 
           {/* Right column - Product card */}
+          {featuredProduct && (
           <div className="hidden lg:block animate-fade-in-up-delay2">
             <div
               className="relative rounded-[20px] border border-white/[0.12] overflow-hidden"
@@ -167,87 +172,102 @@ export default function Hero() {
                 WebkitBackdropFilter: 'blur(18px)',
               }}
             >
-              {/* Product image area */}
               <div className="relative flex justify-center items-center px-6 pt-8 pb-4">
                 <span className="absolute top-5 left-5 z-20 px-3 py-1.5 rounded-[6px] border border-white/[0.12] font-primary text-[11px] font-semibold text-white tracking-wider uppercase">
                   BESTSELLER
                 </span>
-                <button className="absolute top-5 right-5 z-20 w-9 h-9 rounded-full border border-white/25 bg-white/10 flex items-center justify-center cursor-pointer transition-all hover:bg-white/20">
-                  <Heart className="w-4 h-4 text-white" strokeWidth={2} />
+                <button
+                  onClick={() => featuredProduct && currentVariation && currentVial && toggleItem({
+                    slug: featuredProduct.slug,
+                    name: featuredProduct.name,
+                    image: featuredProduct.image,
+                    dosage: currentVariation.dosage,
+                    vial: currentVial.label,
+                    price: currentVial.price,
+                    inStock: currentVial.in_stock,
+                  })}
+                  className={`absolute top-5 right-5 z-20 w-9 h-9 rounded-full border flex items-center justify-center cursor-pointer transition-all ${
+                    featuredProduct && currentVariation && currentVial && isInWishlist(featuredProduct.slug, currentVariation.dosage, currentVial.label)
+                      ? 'border-red-400/50 bg-red-500/20'
+                      : 'border-white/25 bg-white/10 hover:bg-white/20'
+                  }`}
+                >
+                  <Heart
+                    className="w-4 h-4 text-white"
+                    strokeWidth={2}
+                    fill={featuredProduct && currentVariation && currentVial && isInWishlist(featuredProduct.slug, currentVariation.dosage, currentVial.label) ? 'currentColor' : 'none'}
+                  />
                 </button>
                 <img
-                  src="https://beyond-peptides.com/wp-content/uploads/2026/02/BeyondG-10mg-FrontView-e1770136096260-600x658.png"
-                  alt="BeyondG"
+                  src={featuredProduct.image}
+                  alt={featuredProduct.name}
                   className="w-[180px] transition-transform duration-500 hover:scale-[1.03] drop-shadow-[0_8px_24px_rgba(0,0,0,0.2)]"
                 />
               </div>
 
-              {/* Bottom overlay gradient */}
               <div
                 className="absolute left-0 right-0 bottom-0 h-[60%] pointer-events-none"
-                style={{
-                  background: 'linear-gradient(to top, rgba(255,255,255,0.06) 0%, transparent 100%)',
-                }}
+                style={{ background: 'linear-gradient(to top, rgba(255,255,255,0.06) 0%, transparent 100%)' }}
               />
 
-              {/* Product details */}
               <div className="relative z-10 px-6 pt-3 pb-1">
-                <div className="font-primary text-[13px] font-medium text-[#46D9FF] mb-0.5">20 mg</div>
-                <h3 className="font-primary text-[22px] font-semibold text-white mb-4">BeyondG</h3>
+                <div className="font-primary text-[13px] font-medium text-[#46D9FF] mb-0.5">{featuredProduct.dosage || ''}</div>
+                <h3 className="font-primary text-[22px] font-semibold text-white mb-4">{featuredProduct.name}</h3>
 
-                {/* Dosages */}
+                {variations.length > 0 && (
                 <div className="mb-4">
                   <p className="font-primary text-[14px] font-semibold text-white mb-2">
-                    Dosages<span className="text-white/45 font-normal"> : {activeDosage}</span>
+                    Dosages<span className="text-white/45 font-normal"> : {currentVariation?.dosage}</span>
                   </p>
                   <div className="flex gap-2">
-                    {dosages.map((d) => (
+                    {variations.map((v, i) => (
                       <button
-                        key={d}
-                        onClick={() => setActiveDosage(d)}
+                        key={v.dosage}
+                        onClick={() => { setActiveDosageIdx(i); setActiveVialIdx(0); }}
                         className={`px-3.5 py-[7px] rounded-[8px] border font-primary text-[13px] font-medium text-white cursor-pointer transition-all bg-transparent ${
-                          activeDosage === d
+                          activeDosageIdx === i
                             ? 'border-white shadow-[inset_0_0_0_1px_white]'
                             : 'border-white/[0.13] hover:border-white/50'
                         }`}
                       >
-                        {d}
+                        {v.dosage}
                       </button>
                     ))}
                   </div>
                 </div>
+                )}
 
-                {/* Vials */}
+                {currentVariation && currentVariation.vials.length > 0 && (
                 <div className="mb-4">
                   <div className="flex items-center justify-between mb-2">
                     <p className="font-primary text-[14px] font-semibold text-white">
-                      Vial<span className="text-white/45 font-normal"> : {activeVial}</span>
+                      Vial<span className="text-white/45 font-normal"> : {currentVial?.label}</span>
                     </p>
                     <button
-                      onClick={() => { setActiveVial('1 Vial'); setActiveDosage('10 mg'); }}
+                      onClick={() => { setActiveVialIdx(0); setActiveDosageIdx(0); }}
                       className="text-[11px] text-white/35 font-primary font-medium hover:text-white/60 transition-colors tracking-wider uppercase cursor-pointer bg-transparent border-none"
                     >
                       CLEAR
                     </button>
                   </div>
                   <div className="flex gap-2">
-                    {vials.map((v) => (
+                    {currentVariation.vials.map((v, i) => (
                       <button
-                        key={v}
-                        onClick={() => setActiveVial(v)}
+                        key={v.label}
+                        onClick={() => setActiveVialIdx(i)}
                         className={`px-3.5 py-[7px] rounded-[8px] border font-primary text-[13px] font-medium text-white cursor-pointer transition-all bg-transparent ${
-                          activeVial === v
+                          activeVialIdx === i
                             ? 'border-white shadow-[inset_0_0_0_1px_white]'
                             : 'border-white/[0.13] hover:border-white/50'
                         }`}
                       >
-                        {v}
+                        {v.label}
                       </button>
                     ))}
                   </div>
                 </div>
+                )}
 
-                {/* Price */}
                 <div className="py-3">
                   <span className="font-primary text-[18px] font-bold text-white">
                     ${price.toLocaleString('en-US', { minimumFractionDigits: 2 })}
@@ -256,18 +276,27 @@ export default function Hero() {
                 </div>
               </div>
 
-              {/* Add to cart button */}
               <button
-                className="relative z-10 block w-full py-4 text-white border-none font-primary text-[16px] font-semibold cursor-pointer transition-all hover:brightness-110 text-center"
-                style={{
-                  background: '#1BB5DD',
-                  borderRadius: '0 0 20px 20px',
+                onClick={() => {
+                  if (featuredProduct && currentVariation && currentVial) {
+                    addItem({
+                      slug: featuredProduct.slug,
+                      name: featuredProduct.name,
+                      image: featuredProduct.image,
+                      dosage: currentVariation.dosage,
+                      vial: currentVial.label,
+                      price: currentVial.price,
+                    })
+                  }
                 }}
+                className="relative z-10 block w-full py-4 text-white border-none font-primary text-[16px] font-semibold cursor-pointer transition-all hover:brightness-110 text-center"
+                style={{ background: '#1BB5DD', borderRadius: '0 0 20px 20px' }}
               >
                 Add to cart
               </button>
             </div>
           </div>
+          )}
         </div>
       </div>
 

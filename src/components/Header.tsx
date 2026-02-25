@@ -1,5 +1,6 @@
 import { useEffect, useState, useRef } from 'react';
 import { Link } from 'react-router-dom';
+import { useCart } from '../context/CartContext';
 
 const navLinks = [
   { label: 'Home', href: '/' },
@@ -102,6 +103,7 @@ export default function Header() {
   const [scrolled, setScrolled] = useState(false);
   const [megaOpen, setMegaOpen] = useState(false);
   const megaTimeout = useRef<ReturnType<typeof setTimeout>>(null);
+  const { openCart, totalItems } = useCart();
 
   useEffect(() => {
     const handleScroll = () => {
@@ -324,7 +326,7 @@ export default function Header() {
           <a href="/wishlist/" className="cursor-pointer transition-transform hover:scale-105">
             <WishlistIcon scrolled={scrolled} />
           </a>
-          <a href="#" className="relative cursor-pointer transition-transform hover:scale-105">
+          <button onClick={openCart} className="relative cursor-pointer transition-transform hover:scale-105">
             <CartIcon scrolled={scrolled} />
             <span
               className="absolute flex items-center justify-center font-primary font-semibold"
@@ -339,9 +341,9 @@ export default function Header() {
                 fontSize: 10,
               }}
             >
-              0
+              {totalItems}
             </span>
-          </a>
+          </button>
         </div>
       </div>
     </div>

@@ -3,11 +3,17 @@ import { useEffect } from 'react'
 import TopBar from './components/TopBar'
 import Header from './components/Header'
 import Footer from './components/Footer'
+import CartDrawer from './components/CartDrawer'
 import HomePage from './pages/HomePage'
 import ShopPage from './pages/ShopPage'
 import AboutPage from './pages/AboutPage'
 import FaqPage from './pages/FaqPage'
 import ProductPage from './pages/ProductPage'
+import WishlistPage from './pages/WishlistPage'
+import CheckoutPage from './pages/CheckoutPage'
+import OrderReceivedPage from './pages/OrderReceivedPage'
+import { CartProvider } from './context/CartContext'
+import { WishlistProvider } from './context/WishlistContext'
 
 function ScrollToTop() {
   const { pathname } = useLocation()
@@ -19,7 +25,8 @@ function ScrollToTop() {
 
 function App() {
   return (
-    <>
+    <CartProvider>
+    <WishlistProvider>
       <ScrollToTop />
       <TopBar />
       <Routes>
@@ -32,10 +39,18 @@ function App() {
         <Route path="/faq/" element={<FaqPage />} />
         <Route path="/product/:id" element={<ProductPage />} />
         <Route path="/product/:id/" element={<ProductPage />} />
+        <Route path="/wishlist" element={<WishlistPage />} />
+        <Route path="/wishlist/" element={<WishlistPage />} />
+        <Route path="/checkout" element={<CheckoutPage />} />
+        <Route path="/checkout/" element={<CheckoutPage />} />
+        <Route path="/checkout/order-received" element={<OrderReceivedPage />} />
+        <Route path="/checkout/order-received/" element={<OrderReceivedPage />} />
       </Routes>
       <Footer />
       <Header />
-    </>
+      <CartDrawer />
+    </WishlistProvider>
+    </CartProvider>
   )
 }
 

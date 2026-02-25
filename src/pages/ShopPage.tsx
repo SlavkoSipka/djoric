@@ -2,6 +2,10 @@ import { useState, useRef, useCallback } from 'react'
 import { Link } from 'react-router-dom'
 import { ChevronRight, ChevronUp, ChevronDown } from 'lucide-react'
 import ShopNav from '../components/ShopNav'
+import { useShopProducts } from '../hooks/useProducts'
+import { useWishlist } from '../context/WishlistContext'
+import type { ProductRow } from '../lib/supabase'
+import { Heart } from 'lucide-react'
 
 function ShopHero() {
   return (
@@ -93,23 +97,8 @@ function ShopHero() {
 }
 
 const categories = [
-  'All Peptides', 'Bestseller', 'Cosmetics and Tropicals',
+  'All Peptides', 'Bestseller', 'Cosmetics and Topicals',
   'New Products', 'Peptide Products', 'Tablets',
-]
-
-const products = [
-  { name: 'GLOW', dosage: '70 mg', price: 141.55, image: 'https://beyond-peptides.com/wp-content/uploads/2026/01/BeyondPeptides-ProductVis-vA26-t-GLOW-70mg-FrontView-CPUPD2K-e1769169509242.png', slug: 'glow' },
-  { name: 'KPV', dosage: '10 mg', price: 50.55, oldPrice: 60.65, sale: '17% OFF', tag: 'New', image: 'https://beyond-peptides.com/wp-content/uploads/2026/01/BeyondPeptides-ProductVis-vA26-t-KPV-10mg-FrontView-CPUPD2K-e1769169688252.png', slug: 'kp' },
-  { name: 'Tesamorelin', dosage: '5 mg', price: 60.65, tag: 'New', image: 'https://beyond-peptides.com/wp-content/uploads/2026/01/BeyondPeptides-ProductVis-vA26-t-Tesamorelin-5mg-FrontView-CPUPD2K-e1769169281545.png', slug: 'tesa' },
-  { name: 'VIP', dosage: '10 mg', price: 85.93, image: 'https://beyond-peptides.com/wp-content/uploads/2026/01/BeyondPeptides-ProductVis-vA26-t-VIP-10ml-FrontView-CPUPD2K-e1769169867761.png', slug: 'vi' },
-  { name: 'NAD+', dosage: '10 ml', price: 100.10, tag: 'New', image: 'https://beyond-peptides.com/wp-content/uploads/2025/12/BeyondPeptides-ProductVis-vA26-t-Vial-10ml-NADplus-FrontView-CPUPD2K-e1769168305556.png', slug: 'nad' },
-  { name: 'KLOW', dosage: '80 mg', price: 150.65, tag: 'New', image: 'https://beyond-peptides.com/wp-content/uploads/2025/12/BeyondPeptides-ProductVis-vA26-t-KLOW-80ml-FrontView-CPUPD2K-e1769170070892.png', slug: 'klo' },
-  { name: 'BeyondC', dosage: '5 mg', price: 80.84, tag: 'New', image: 'https://beyond-peptides.com/wp-content/uploads/2025/12/BeyondPeptides-ProductVis-vA26-t-BeyondC-5mg-FrontView-CPUPD2K-e1769620917968.png', slug: 'beyondc' },
-  { name: 'Beyond Skin', price: 111.22, tag: 'New', image: 'https://beyond-peptides.com/wp-content/uploads/2025/12/combined_online-e1765802647173.webp', slug: 'beyond-skin' },
-  { name: 'Beyond Hair', price: 70.77, tag: 'New', image: 'https://beyond-peptides.com/wp-content/uploads/2025/12/BeyondPeptides-ProductVis-vA23-t-Beyond-Hair-Oil-30ml-FrontView-CPUPD2K-e1765460464189.webp', slug: 'beyond-hair' },
-  { name: 'Thymosin Alpha 1', dosage: '5 mg', price: 45.49, tag: 'New', image: 'https://beyond-peptides.com/wp-content/uploads/2025/11/BeyondPeptides-ProductVis-vA23-t-Thymosin_alpha_1-5mg-FrontView-CPUPD2K-e1769172851849.png', slug: 'thymosin' },
-  { name: 'AOD 9604', dosage: '5 mg', price: 50.55, tag: 'New', image: 'https://beyond-peptides.com/wp-content/uploads/2025/11/BeyondPeptides-ProductVis-vA25-t-AOD-9604-5mg-FrontView-CPUPD2K-1-e1769173707446.png', slug: 'aod-9604' },
-  { name: 'Bacteriostatic Water', dosage: '10 ml', price: 9.09, image: 'https://beyond-peptides.com/wp-content/uploads/2025/11/BeyondPeptides-Under200-q80.webp', slug: 'bac' },
 ]
 
 const cartIconSvg = (
@@ -185,8 +174,17 @@ function FilterAccordion({ title, defaultOpen, children }: { title: string; defa
   )
 }
 
-function ProductCard({ product }: { product: typeof products[0] }) {
+function ProductCard({ product }: { product: ProductRow }) {
   const [hovered, setHovered] = useState(false)
+  const { isInWishlist, toggleItem } = useWishlist()
+
+  const v = product.variations?.[0]
+  const vial = v?.vials?.[0]
+  const dosage = v?.dosage || product.dosage || ''
+  const vialLabel = vial?.label || '1 Vial'
+  const price = vial?.price ?? product.price
+  const inStock = vial?.in_stock ?? product.in_stock
+  const wishlisted = isInWishlist(product.slug, dosage, vialLabel)
 
   return (
     <div
@@ -195,16 +193,26 @@ function ProductCard({ product }: { product: typeof products[0] }) {
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
     >
-      {(product.tag || product.sale) && (
+      <div className="absolute top-3 right-3 z-10">
+        <button
+          onClick={(e) => { e.preventDefault(); toggleItem({ slug: product.slug, name: product.name, image: product.image, dosage, vial: vialLabel, price, inStock }) }}
+          className={`w-9 h-9 rounded-full border flex items-center justify-center transition-all ${
+            wishlisted ? 'border-red-400 bg-red-50 text-red-500' : 'border-[#e5e7eb] bg-white hover:border-[#16A1C5] hover:bg-[#f0fafe]'
+          }`}
+        >
+          <Heart className="w-4 h-4" fill={wishlisted ? 'currentColor' : 'none'} stroke="currentColor" />
+        </button>
+      </div>
+      {(product.tag || product.sale_badge) && (
         <div className="absolute top-3 left-3 z-10 flex flex-col gap-1.5">
           {product.tag && (
             <span className="font-primary text-[11px] font-semibold px-3 py-1 rounded-full bg-[#16A1C5] text-white">
               {product.tag}
             </span>
           )}
-          {product.sale && (
+          {product.sale_badge && (
             <span className="font-primary text-[11px] font-semibold px-3 py-1 rounded-full bg-[#E8453C] text-white">
-              {product.sale}
+              {product.sale_badge}
             </span>
           )}
         </div>
@@ -230,9 +238,9 @@ function ProductCard({ product }: { product: typeof products[0] }) {
 
       <div className="px-5 pb-4 flex items-center justify-between">
         <div className="flex items-center gap-2">
-          {product.oldPrice && (
+          {product.old_price && (
             <span className="font-primary text-[13px] text-[#8494A6] line-through">
-              {product.oldPrice.toFixed(2)}€
+              {product.old_price.toFixed(2)}€
             </span>
           )}
           <span className="font-primary font-semibold text-[15px] text-[#22282F]">
@@ -266,6 +274,7 @@ function ProductCard({ product }: { product: typeof products[0] }) {
 }
 
 export default function ShopPage() {
+  const { products, loading } = useShopProducts()
   const [selectedCats, setSelectedCats] = useState<string[]>([])
 
   const toggleCat = (cat: string) => {
@@ -320,16 +329,16 @@ export default function ShopPage() {
                 {products.length} Products
               </p>
               <div className="hidden sm:flex items-center gap-3">
-                <select className="font-primary text-[13px] text-[#444B53] border border-[#DBDFE5] rounded-lg px-3 py-2 outline-none bg-white cursor-pointer">
-                  <option disabled selected>Sort By</option>
+                <select defaultValue="" className="font-primary text-[13px] text-[#444B53] border border-[#DBDFE5] rounded-lg px-3 py-2 outline-none bg-white cursor-pointer">
+                  <option value="" disabled>Sort By</option>
                   <option>Date</option>
                   <option>Name</option>
                   <option>Price</option>
                   <option>Top Seller</option>
                   <option>Top Rated</option>
                 </select>
-                <select className="font-primary text-[13px] text-[#444B53] border border-[#DBDFE5] rounded-lg px-3 py-2 outline-none bg-white cursor-pointer">
-                  <option disabled selected>View</option>
+                <select defaultValue="" className="font-primary text-[13px] text-[#444B53] border border-[#DBDFE5] rounded-lg px-3 py-2 outline-none bg-white cursor-pointer">
+                  <option value="" disabled>View</option>
                   <option>2 Products per Row</option>
                   <option>3 Products per Row</option>
                   <option>4 Products per Row</option>
@@ -337,11 +346,19 @@ export default function ShopPage() {
               </div>
             </div>
 
-            <div className="grid grid-cols-2 md:grid-cols-3 gap-5">
-              {products.map((product) => (
-                <ProductCard key={product.slug} product={product} />
-              ))}
-            </div>
+            {loading ? (
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-5">
+                {[1, 2, 3, 4, 5, 6].map((i) => (
+                  <div key={i} className="h-[350px] bg-[#e5e7eb] rounded-2xl animate-pulse" />
+                ))}
+              </div>
+            ) : (
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-5">
+                {products.map((product) => (
+                  <ProductCard key={product.slug} product={product} />
+                ))}
+              </div>
+            )}
 
             <div className="flex justify-center mt-10">
               <button className="font-primary font-semibold text-[14px] text-[#16A1C5] border-2 border-[#16A1C5] rounded-lg px-8 py-3 hover:bg-[#16A1C5] hover:text-white transition-colors">

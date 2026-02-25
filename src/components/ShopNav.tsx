@@ -1,5 +1,7 @@
 import { Link } from 'react-router-dom'
 import { User, Heart, ShoppingCart } from 'lucide-react'
+import { useCart } from '../context/CartContext'
+import { useWishlist } from '../context/WishlistContext'
 
 const navItems = [
   { label: 'Home', to: '/' },
@@ -9,6 +11,9 @@ const navItems = [
 ]
 
 export default function ShopNav() {
+  const { openCart, totalItems } = useCart()
+  const { totalItems: wishlistCount } = useWishlist()
+
   return (
     <div
       style={{
@@ -57,24 +62,32 @@ export default function ShopNav() {
             </nav>
 
             <div className="flex items-center gap-2.5">
-              {[User, Heart].map((Icon, idx) => (
-                <a
-                  key={idx}
-                  href="#"
-                  className="w-[38px] h-[38px] rounded-full border border-white/20 flex items-center justify-center cursor-pointer transition-all hover:border-white/40 hover:bg-white/10"
-                >
-                  <Icon className="w-[18px] h-[18px] text-white" />
-                </a>
-              ))}
-              <a
-                href="#"
+              <Link
+                to="/my-account/"
+                className="w-[38px] h-[38px] rounded-full border border-white/20 flex items-center justify-center cursor-pointer transition-all hover:border-white/40 hover:bg-white/10"
+              >
+                <User className="w-[18px] h-[18px] text-white" />
+              </Link>
+              <Link
+                to="/wishlist/"
+                className="relative w-[38px] h-[38px] rounded-full border border-white/20 flex items-center justify-center cursor-pointer transition-all hover:border-white/40 hover:bg-white/10"
+              >
+                <Heart className="w-[18px] h-[18px] text-white" />
+                {wishlistCount > 0 && (
+                  <span className="absolute -top-0.5 -right-0.5 bg-red-500 text-white w-[16px] h-[16px] rounded-full text-[10px] font-semibold flex items-center justify-center font-primary">
+                    {wishlistCount}
+                  </span>
+                )}
+              </Link>
+              <button
+                onClick={openCart}
                 className="relative w-[38px] h-[38px] rounded-full border border-white/20 flex items-center justify-center cursor-pointer transition-all hover:border-white/40 hover:bg-white/10"
               >
                 <ShoppingCart className="w-[18px] h-[18px] text-white" />
                 <span className="absolute -top-0.5 -right-0.5 bg-red-500 text-white w-[16px] h-[16px] rounded-full text-[10px] font-semibold flex items-center justify-center font-primary">
-                  0
+                  {totalItems}
                 </span>
-              </a>
+              </button>
             </div>
           </header>
         </div>
